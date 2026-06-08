@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>You are my light.</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center bottom, #2b6cb0 0%, #1a365d 100%);
+        }
+
+        canvas {
+            display: block;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* 🌕 月亮层（背景，在canvas下方） */
+        .moon-layer {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+            transition: opacity 4s ease-out, transform 4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* ✨ 文字层（最顶层，在canvas上方） */
+        .text-layer {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+            transition: opacity 4s ease-out, transform 4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .moon-layer.visible,
+        .text-layer.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* 🌕 朦胧光影圆月（完全保留原版样式） */
+        .glowing-moon {
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%,
+                    rgba(255, 253, 240, 0.95) 0%,
+                    rgba(255, 248, 220, 0.85) 45%,
+                    rgba(255, 240, 200, 0.7) 75%,
+                    rgba(255, 230, 180, 0.55) 88%,
+                    rgba(255, 230, 180, 0.18) 100%);
+            box-shadow:
+                0 0 30px rgba(255, 248, 220, 0.4),
+                0 0 60px rgba(255, 240, 200, 0.25),
+                0 0 100px rgba(255, 230, 180, 0.15);
+            filter: blur(0.5px);
+            animation: moonBreathe 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes moonBreathe {
+            0% {
+                box-shadow:
+                    0 0 30px rgba(255, 248, 220, 0.35),
+                    0 0 60px rgba(255, 240, 200, 0.2),
+                    0 0 100px rgba(255, 230, 180, 0.12);
+                filter: blur(0.5px);
+            }
+
+            100% {
+                box-shadow:
+                    0 0 40px rgba(255, 248, 220, 0.5),
+                    0 0 80px rgba(255, 240, 200, 0.3),
+                    0 0 120px rgba(255, 230, 180, 0.2);
+                filter: blur(0.8px);
+            }
+        }
+
+        /* ✨ 月下文字（完全保留原版样式） */
+        .poetic-text {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: rgba(230, 240, 255, 0.85);
+            letter-spacing: 0.18em;
+            text-align: center;
+            text-shadow:
+                0 0 8px rgba(180, 210, 255, 0.35),
+                0 0 25px rgba(100, 150, 255, 0.15);
+            animation: textGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes textGlow {
+            0% {
+                text-shadow: 0 0 8px rgba(180, 210, 255, 0.25);
+            }
+
+            100% {
+                text-shadow: 0 0 16px rgba(220, 240, 255, 0.5), 0 0 35px rgba(150, 200, 255, 0.25);
+            }
+        }
+
+        /* ✅ 响应式适配：PC端 */
+        @media (min-width: 769px) {
+
+            .moon-layer,
+            .text-layer {
+                top: -8vw;
+                left: -10vw;
+            }
+
+            .glowing-moon {
+                width: clamp(180px, 26vw, 360px);
+                height: clamp(180px, 26vw, 360px);
+            }
+
+            .poetic-text {
+                font-size: clamp(0.9rem, 1.8vw, 1.6rem);
+                max-width: 35vw;
+                margin-top: clamp(15px, 3vh, 30px);
+                margin-left: clamp(25px, 5vw, 60px);
+            }
+        }
+
+        /* ✅ 响应式适配：移动端 */
+        @media (max-width: 768px) {
+
+            .moon-layer,
+            .text-layer {
+                top: 8vh;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px) scale(0.9);
+            }
+
+            .moon-layer.visible,
+            .text-layer.visible {
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+
+            .glowing-moon {
+                width: clamp(120px, 35vw, 200px);
+                height: clamp(120px, 35vw, 200px);
+            }
+
+            .poetic-text {
+                font-size: clamp(0.75rem, 3.5vw, 1rem);
+                color: skyblue;
+                max-width: 80vw;
+                margin-top: clamp(240px, 2vh, 20px);
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container">
+        <!-- 🌕 月亮层：背景，在canvas下方 -->
+        <div class="moon-layer" id="moonLayer">
+            <div class="glowing-moon"></div>
+        </div>
+
+        <canvas id="starCanvas"></canvas>
+
+        <!-- ✨ 文字层：最顶层，在canvas上方 -->
+        <div class="text-layer" id="textLayer">
+            <div class="poetic-text">Stars, the moon, <br>and you.</div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ 设备检测与性能分级
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+        const CONFIG = {
+            // ✅ 响应式性能分级：移动端降低负载
+            particleCount: isMobile ? 40 : 80,
+            connectionDistance: isMobile ? 0 : 120, // ✅ 移动端关闭连线
+            branchColor: 'rgba(20, 30, 50, 0.7)',
+            starColor: '#fff',
+            lineColor: '255, 255, 255',
+            windSpeed: 1.2,
+            windStrength: 0.015,
+            growSpeed: 0.003,
+
+            bloomStartGrowth: 0.4,
+            bloomMaxCount: isMobile ? 150 : 280, // ✅ 移动端减少星星数量
+            stemGrowDuration: 0.4,
+            headGrowDuration: 0.6,
+            stemLengthMin: 10,
+            stemLengthMax: 35,
+            swayAmplitude: 0.07,
+            swaySpeedBase: 1.6,
+            glowPulseSpeed: 2.2,
+            // ✅ 移动端降低采样率
+            slotSampleChanceMain: isMobile ? 0.25 : 0.38,
+            slotSampleChanceSub: isMobile ? 0.4 : 0.58,
+            minSlotDistance: isMobile ? 18 : 11,
+            spawnRatePerFrame: isMobile ? 0.25 : 0.35,
+
+            textAppearGrowth: 0.25,
+
+            meteorSpawnChance: isMobile ? 0.025 : 0.038, // ✅ 移动端减少流星频率
+            meteorMinSpeed: 5,
+            meteorMaxSpeed: 12,
+            meteorTrailLength: isMobile ? 20 : 34, // ✅ 移动端缩短拖尾
+            meteorLife: 1.4
+        };
+
+        const TREES = [
+            {
+                label: "main", startX: null, startY: null,
+                lengthRatio: 0.35, baseAngle: -Math.PI * 0.58,
+                maxDepth: isMobile ? 9 : 11, // ✅ 移动端减少树枝层级
+                seed: 12345, growDelay: 0,
+                spreadBase: 0.40, spreadJitter: 0.10,
+                lenDecayBase: 0.70, lenDecayJitter: 0.05
+            },
+            {
+                label: "sub", startX: null, startY: null,
+                lengthRatio: 0.20, baseAngle: -Math.PI * 0.61,
+                maxDepth: isMobile ? 7 : 9, // ✅ 移动端减少树枝层级
+                seed: 67890, growDelay: 0.25,
+                spreadBase: 0.60, spreadJitter: 0.20,
+                lenDecayBase: 0.65, lenDecayJitter: 0.10
+            }
+        ];
+
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        const moonLayer = document.getElementById('moonLayer');
+        const textLayer = document.getElementById('textLayer');
+        let width, height;
+        let particles = [];
+        let blooms = [];
+        let meteors = [];
+        let time = 0;
+        let globalGrowth = 0;
+        let bloomSlots = [];
+        let slotsGeneratedForGrowth = -1;
+        let textShown = false;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            TREES[0].startX = width * 0.89; TREES[0].startY = height + 10;
+            TREES[1].startX = width; TREES[1].startY = height + 5;
+            bloomSlots = [];
+            slotsGeneratedForGrowth = -1;
+        }
+        window.addEventListener('resize', () => { resize(); initParticles(); });
+        resize();
+
+        function seededRandom(seed) {
+            const x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+        function easeOutElastic(t) {
+            if (t === 0 || t === 1) return t;
+            return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+        }
+        function randRange(min, max) { return min + Math.random() * (max - min); }
+        function powerRand(min, max, power) { return min + (max - min) * Math.pow(Math.random(), power); }
+
+        // ==========================================
+        // 1. 树枝系统（完全保留原版逻辑）
+        // ==========================================
+        function drawSwayingBranch(x, y, len, angle, depth, seed, currentGrowth, treeConfig, collectSlots) {
+            if (depth === 0 || currentGrowth <= 0) return;
+            const maxDepth = treeConfig.maxDepth;
+            const depthThreshold = (maxDepth - depth + 1) / maxDepth;
+            if (currentGrowth < depthThreshold * 0.5) return;
+
+            let localGrowth = Math.max(0, Math.min(1, (currentGrowth - depthThreshold * 0.5) / 0.5));
+            localGrowth = easeOutCubic(localGrowth);
+
+            const depthFactor = (maxDepth - depth) / maxDepth;
+            const windMultiplier = treeConfig.label === 'sub' ? 1.4 : 1.0;
+            const windOffset = Math.sin(time * CONFIG.windSpeed + depth * 0.5 + seed)
+                * CONFIG.windStrength * (1 + depthFactor * 2) * windMultiplier;
+
+            const currentAngle = angle + windOffset;
+            const actualLen = len * localGrowth;
+            const endX = x + actualLen * Math.cos(currentAngle);
+            const endY = y + actualLen * Math.sin(currentAngle);
+
+            if (collectSlots && localGrowth > 0.8 && depth > 1 && depth < maxDepth - 1) {
+                const chance = treeConfig.label === 'sub'
+                    ? CONFIG.slotSampleChanceSub
+                    : CONFIG.slotSampleChanceMain;
+                if (seededRandom(seed * 7.77) < chance) {
+                    let tooClose = false;
+                    for (const slot of bloomSlots) {
+                        const dx = slot.baseX - endX, dy = slot.baseY - endY;
+                        if (dx * dx + dy * dy < CONFIG.minSlotDistance * CONFIG.minSlotDistance) {
+                            tooClose = true; break;
+                        }
+                    }
+                    if (!tooClose) {
+                        bloomSlots.push({
+                            id: bloomSlots.length,
+                            baseX: endX, baseY: endY,
+                            baseAngle: currentAngle,
+                            treeLabel: treeConfig.label,
+                            depth: depth,
+                            occupied: false
+                        });
+                    }
+                }
+            }
+
+            if (localGrowth > 0.01) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = CONFIG.branchColor;
+                const lw = treeConfig.label === 'main' ? 0.85 : 0.65;
+                ctx.lineWidth = depth * lw * localGrowth;
+                ctx.lineCap = 'round'; ctx.stroke();
+            }
+
+            if (localGrowth > 0.8) {
+                const r1 = seededRandom(seed * 1.1), r2 = seededRandom(seed * 2.3), r3 = seededRandom(seed * 3.7);
+                const subLen = len * (treeConfig.lenDecayBase + (r1 * 2 - 1) * treeConfig.lenDecayJitter);
+                const spread = treeConfig.spreadBase + (r2 * 2 - 1) * treeConfig.spreadJitter;
+                const lb = treeConfig.label === 'main' ? 1.2 : 0.8;
+                const rb = treeConfig.label === 'main' ? 0.8 : 1.2;
+                drawSwayingBranch(endX, endY, subLen, currentAngle - spread * lb, depth - 1, seed * 1.01, currentGrowth, treeConfig, collectSlots);
+                drawSwayingBranch(endX, endY, subLen, currentAngle + spread * rb, depth - 1, seed * 2.02, currentGrowth, treeConfig, collectSlots);
+                if (depth > 3 && r3 > 0.5) {
+                    drawSwayingBranch(endX, endY, subLen * 0.7, currentAngle + (r3 - 0.5) * 1.2, depth - 1, seed * 3.03, currentGrowth, treeConfig, collectSlots);
+                }
+            }
+        }
+
+        function renderAllTrees() {
+            const growthBucket = Math.floor(globalGrowth * 20);
+            const needCollect = growthBucket > slotsGeneratedForGrowth && globalGrowth >= CONFIG.bloomStartGrowth;
+            if (needCollect) slotsGeneratedForGrowth = growthBucket;
+
+            for (const tree of TREES) {
+                let tg = Math.max(0, Math.min(1, (globalGrowth - tree.growDelay) / (1 - tree.growDelay)));
+                if (tg <= 0) continue;
+                drawSwayingBranch(tree.startX, tree.startY, height * tree.lengthRatio, tree.baseAngle, tree.maxDepth, tree.seed, tg, tree, needCollect);
+            }
+        }
+
+        // ==========================================
+        // 2. ⭐ 纯星星枝头系统（完全保留原版逻辑）
+        // ==========================================
+        class BranchBloom {
+            constructor(slot) {
+                this.slotId = slot.id;
+                this.type = 'star';
+                this.birthTime = time;
+                this.life = 1.0;
+
+                this.stemLength = powerRand(CONFIG.stemLengthMin, CONFIG.stemLengthMax, 1.6);
+                this.stemAngleOffset = randRange(-0.6, 0.6);
+                this.swayPhase = randRange(0, Math.PI * 2);
+                this.swayFreqMult = randRange(0.7, 1.4);
+                this.sizeBase = randRange(3, 6);
+                this.glowIntensity = randRange(0.15, 0.4);
+                this.colorWarmth = randRange(0, 1);
+                this.pulsePhase = randRange(0, Math.PI * 2);
+
+                this.currentStemLen = 0;
+                this.currentHeadSize = 0;
+                this.currentAlpha = 0;
+                this.stemEndX = slot.baseX;
+                this.stemEndY = slot.baseY;
+            }
+
+            update(slot) {
+                const age = time - this.birthTime;
+
+                const stemT = Math.min(1, age / CONFIG.stemGrowDuration);
+                this.currentStemLen = this.stemLength * easeOutCubic(stemT);
+
+                const headDelay = CONFIG.stemGrowDuration * 0.4;
+                const headAge = Math.max(0, age - headDelay);
+                const headT = Math.min(1, headAge / CONFIG.headGrowDuration);
+                this.currentHeadSize = this.sizeBase * easeOutElastic(headT);
+
+                this.currentAlpha = Math.min(1, age / (CONFIG.stemGrowDuration + 0.3));
+
+                const windSway = Math.sin(time * CONFIG.windSpeed + slot.baseX * 0.008) * CONFIG.swayAmplitude * 0.6;
+                const selfSway = Math.sin(time * CONFIG.swaySpeedBase * this.swayFreqMult + this.swayPhase) * CONFIG.swayAmplitude;
+                const totalSway = windSway + selfSway;
+
+                const stemAngle = slot.baseAngle + this.stemAngleOffset + totalSway;
+                this.stemEndX = slot.baseX + Math.cos(stemAngle) * this.currentStemLen;
+                this.stemEndY = slot.baseY + Math.sin(stemAngle) * this.currentStemLen;
+
+                if (age > 18) this.life -= 0.0004;
+            }
+
+            draw() {
+                if (this.currentAlpha <= 0.01 || this.life <= 0) return;
+
+                const alpha = this.currentAlpha * this.life;
+                const pulse = 1 + Math.sin(time * CONFIG.glowPulseSpeed + this.pulsePhase) * 0.18;
+
+                const warmR = Math.round(180 + this.colorWarmth * 75);
+                const warmG = Math.round(200 + this.colorWarmth * 15);
+                const warmB = Math.round(255 - this.colorWarmth * 170);
+
+                const slot = bloomSlots.find(s => s.id === this.slotId);
+                const originX = slot ? slot.baseX : this.stemEndX;
+                const originY = slot ? slot.baseY : this.stemEndY;
+
+                if (this.currentStemLen > 0.5) {
+                    ctx.save();
+                    ctx.globalAlpha = alpha * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(originX, originY);
+                    const midX = (originX + this.stemEndX) / 2 + Math.sin(time * 2 + this.swayPhase) * 2;
+                    const midY = (originY + this.stemEndY) / 2 + 3;
+                    ctx.quadraticCurveTo(midX, midY, this.stemEndX, this.stemEndY);
+                    const stemMaturity = Math.min(1, this.currentStemLen / this.stemLength);
+                    const gr = Math.round(120 + stemMaturity * 80);
+                    const gg = Math.round(200 + stemMaturity * 25);
+                    const gb = Math.round(100 + stemMaturity * 155);
+                    ctx.strokeStyle = `rgba(${gr},${gg},${gb},0.7)`;
+                    ctx.lineWidth = 0.8 * (1 - stemMaturity * 0.3);
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                if (this.currentHeadSize > 0.1) {
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    const sz = this.currentHeadSize * pulse;
+                    ctx.fillStyle = `rgb(${warmR},${warmG},${warmB})`;
+                    // ✅ 移动端降低shadowBlur提升性能
+                    const blurAmount = isMobile ? 6 : (12 + this.glowIntensity * 18 * pulse);
+                    ctx.shadowBlur = blurAmount;
+                    ctx.shadowColor = `rgb(${warmR},${warmG},${warmB})`;
+                    drawStarShape(ctx, this.stemEndX, this.stemEndY, 4, sz * 2.2, sz);
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawStarShape(ctx, cx, cy, spikes, outerR, innerR) {
+            let rot = Math.PI / 2 * 3, step = Math.PI / spikes;
+            ctx.beginPath(); ctx.moveTo(cx, cy - outerR);
+            for (let i = 0; i < spikes; i++) {
+                ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR); rot += step;
+                ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR); rot += step;
+            }
+            ctx.closePath(); ctx.fill();
+        }
+
+        // ==========================================
+        // 3. 🌠 流星系统（完全保留原版逻辑）
+        // ==========================================
+        class Meteor {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = randRange(width * 0.05, width * 0.95);
+                this.y = randRange(-80, height * 0.35);
+
+                const angle = randRange(Math.PI * 0.12, Math.PI * 0.48);
+                const speed = randRange(CONFIG.meteorMinSpeed, CONFIG.meteorMaxSpeed);
+                this.vx = Math.cos(angle) * speed * (Math.random() > 0.4 ? 1 : -1);
+                this.vy = Math.sin(angle) * speed;
+
+                this.trail = [];
+                this.maxTrail = CONFIG.meteorTrailLength;
+                this.birthTime = time;
+                this.alive = true;
+
+                this.brightness = randRange(0.7, 1.0);
+                this.hue = randRange(190, 250);
+                this.width = randRange(1.3, 2.8);
+            }
+
+            update() {
+                if (!this.alive) return;
+
+                const age = time - this.birthTime;
+                if (age > CONFIG.meteorLife || this.y > height + 50 || this.x < -80 || this.x > width + 80) {
+                    this.alive = false;
+                    return;
+                }
+
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.maxTrail) {
+                    this.trail.shift();
+                }
+
+                this.vy += 0.06;
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                if (!this.alive || this.trail.length < 2) return;
+
+                const age = time - this.birthTime;
+                const lifeRatio = 1 - age / CONFIG.meteorLife;
+
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                for (let i = 1; i < this.trail.length; i++) {
+                    const t = i / this.trail.length;
+                    const alpha = t * t * lifeRatio * this.brightness;
+
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
+
+                    ctx.strokeStyle = `hsla(${this.hue}, 85%, 88%, ${alpha})`;
+                    ctx.lineWidth = this.width * t;
+                    ctx.stroke();
+                }
+
+                const head = this.trail[this.trail.length - 1];
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, this.width * 1.8, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 90%, 95%, ${lifeRatio * this.brightness})`;
+                // ✅ 移动端降低shadowBlur
+                ctx.shadowBlur = isMobile ? 8 : 18;
+                ctx.shadowColor = `hsla(${this.hue}, 85%, 75%, 0.9)`;
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // ✅ 响应式流星池大小
+        const METEOR_POOL_SIZE = isMobile ? 8 : 14;
+        for (let i = 0; i < METEOR_POOL_SIZE; i++) {
+            const m = new Meteor();
+            m.alive = false;
+            meteors.push(m);
+        }
+
+        function spawnMeteor() {
+            const inactive = meteors.find(m => !m.alive);
+            if (inactive) inactive.reset();
+        }
+
+        // ==========================================
+        // 4. 背景粒子（完全保留原版逻辑）
+        // ==========================================
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+                this.alpha = Math.random(); this.alphaSpeed = 0.01 + Math.random() * 0.02;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+                this.alpha += this.alphaSpeed;
+                if (this.alpha > 1 || this.alpha < 0.2) this.alphaSpeed *= -1;
+            }
+            draw() {
+                ctx.save(); ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = CONFIG.starColor;
+                // ✅ 移动端降低shadowBlur
+                ctx.shadowBlur = isMobile ? 4 : 10;
+                ctx.shadowColor = "white";
+                drawStarShape(ctx, this.x, this.y, 4, this.size * 2, this.size);
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
+        }
+
+        // ==========================================
+        // 5. 主循环（完全保留原版逻辑）
+        // ==========================================
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            time += 0.016;
+
+            if (globalGrowth < 1) {
+                globalGrowth += CONFIG.growSpeed;
+                if (globalGrowth > 1) globalGrowth = 1;
+            }
+
+            if (!textShown && globalGrowth >= CONFIG.textAppearGrowth) {
+                textShown = true;
+                moonLayer.classList.add('visible');
+                textLayer.classList.add('visible');
+            }
+
+            renderAllTrees();
+
+            if (globalGrowth > CONFIG.bloomStartGrowth && blooms.length < CONFIG.bloomMaxCount) {
+                const emptySlots = bloomSlots.filter(s => !s.occupied);
+                const spawnCount = Math.min(5, emptySlots.length);
+                for (let i = 0; i < spawnCount; i++) {
+                    if (blooms.length >= CONFIG.bloomMaxCount) break;
+                    if (Math.random() < CONFIG.spawnRatePerFrame) {
+                        const idx = Math.floor(Math.random() * emptySlots.length);
+                        const chosen = emptySlots[idx];
+                        chosen.occupied = true;
+                        blooms.push(new BranchBloom(chosen));
+                        emptySlots.splice(idx, 1);
+                    }
+                }
+            }
+
+            for (let i = blooms.length - 1; i >= 0; i--) {
+                const bloom = blooms[i];
+                const slot = bloomSlots.find(s => s.id === bloom.slotId);
+                if (slot) {
+                    bloom.update(slot);
+                    bloom.draw();
+                }
+                if (bloom.life <= 0) {
+                    if (slot) slot.occupied = false;
+                    blooms.splice(i, 1);
+                }
+            }
+
+            if (Math.random() < CONFIG.meteorSpawnChance) {
+                spawnMeteor();
+            }
+            for (const meteor of meteors) {
+                if (meteor.alive) {
+                    meteor.update();
+                    meteor.draw();
+                }
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i]; p.update(); p.draw();
+                // ✅ 移动端跳过连线计算
+                if (!isMobile) {
+                    for (let j = i; j < particles.length; j++) {
+                        let p2 = particles[j];
+                        let dx = p.x - p2.x, dy = p.y - p2.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONFIG.connectionDistance) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(${CONFIG.lineColor}, ${(1 - dist / CONFIG.connectionDistance) * 0.3})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
+    </script>
+</body>
+
+</html>
